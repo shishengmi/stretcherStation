@@ -1,47 +1,35 @@
-import time
-import asyncio
-import json
-from websocket_server import start_server, send_message_to_all, connected_clients
-from parse_serial_data import SerialDataParser
+import matplotlib.pyplot as plt
+from seria_receive import SerialData
 from data_processing import DataProcessor
+import time
 
-async def send_data(processor):
-    while True:
-        if connected_clients:  # Check if there are connected clients
-            processed_data = processor.get_processed_data()
-            # 获取最新的33个A，一个B，一个C
-            data_A = processed_data['A'][-33:] if len(processed_data['A']) >= 33 else processed_data['A']
-            data_B = processed_data['B'][-1] if processed_data['B'] else 'N/A'
-            data_C = processed_data['C'][-1] if processed_data['C'] else 'N/A'
-
-            # 构建消息
-            message = {
-                'A': data_A,
-                'B': data_B,
-                'C': data_C
-            }
-            # 转换成JSON格式
-            json_message = json.dumps(message)
-
-            # 发送消息
-            await send_message_to_all(json_message)
-        await asyncio.sleep(1)  # 33Hz
-
-
-async def main():
-    parser = SerialDataParser()
-    parser.start()
-
-    processor = DataProcessor(parser)
-    processor.start()
-
-    server_task = asyncio.create_task(start_server())
-    send_data_task = asyncio.create_task(send_data(processor))
-
-    await asyncio.gather(server_task, send_data_task)
+def plot_data(data):
+    plt.figure()  # 创建一个新的图形
+    plt.plot(data, marker='o', linestyle='-')  # 画出数据点，线性连接
+    plt.title('Processed Data A')
+    plt.xlabel('Sample Index')
+    plt.ylabel('Value')
+    plt.grid(True)  # 显示网格
+    plt.show(block=False)  # 显示图形，但不阻塞代码运行
+    plt.pause(0.001)  # 暂停一段很短的时间，以便更新图形
+    plt.close()  # 关闭图形以避免太多开放的窗口
 
 if __name__ == "__main__":
+    serial_parser = SerialData(port='COM4')
+    serial_parser.start()
+
+    data_processor = DataProcessor(serial_parser)
+    data_processor.start()
+
     try:
-        asyncio.run(main())
+        while True:
+            processed_data = data_processor.get_processed_data()
+            if processed_data:
+                # 转换np.float64值为标准浮点数，并格式化输出
+                formatted_data = [float(value) for value in processed_data[0]]  # 假设数据是列表的列表
+                print(f"Processed Data A: {formatted_data}")
+                plot_data(formatted_data)  # 调用绘图函数
+            time.sleep(1)  # 刷新率，根据需要调整
     except KeyboardInterrupt:
-        pass
+        data_processor.stop()
+        serial_parser.stop()
