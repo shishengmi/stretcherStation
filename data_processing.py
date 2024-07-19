@@ -21,9 +21,6 @@ class DataProcessor:
     def start(self):
         self.is_running = True
         threading.Thread(target=self.process_data, daemon=True).start()
-        # TODO threading.Thread(target=self.process_data_B, daemon=True).start()
-        # TODO threading.Thread(target=self.process_data_C, daemon=True).start()
-        # 还需要创建两个进程对B和C尽心处理
 
     def stop(self):
         self.is_running = False
@@ -35,23 +32,20 @@ class DataProcessor:
                 a_value = self.parser.data_A.get(timeout=1)
                 self.data_A_list.append(a_value)
 
-                if len(self.data_A_list) == 250:
+                if len(self.data_A_list) == 500:
                     # Process data A using LTTB to downs ample to 40 points
-                    times = np.linspace(0, 249, num=250)
+                    times = np.linspace(0, 499, num=500)
                     # 生成一个等间隔的二维数组
                     simplified_data_A = lttb.downsample(np.column_stack((times, self.data_A_list)), self.lttb_n_count)
                     # np.column_stack((times, self.data_A_list)) 合并数组生成一个二位数组
                     processed_A = [point[1] for point in simplified_data_A]
                     # 他是一个列表
-                    # self.process_data_A(processed_A)
+                    self.process_data_A(processed_A)
                     for point in processed_A:
                         self.processed_data_ecg_web.put(point)
                         self.processed_data_ecg_monitor.put(point)
                     # 将处理好的数组放入消息队列中
                     self.data_A_list = []  # Clear list for next batch
-                    # TODO 不需要固定处理后A的数据长度，只需要放入缓冲队列即可，在读取的时候
-                    # TODO 同时将数据压入两个队列中，一个用于网页，一个用于数据终端
-                    # 非固定长度，网页隔一段时间或者数据显示完全之后就发送一次请求，这是只需要发送处理好的数据即可
 
 
 
@@ -66,8 +60,6 @@ class DataProcessor:
             self.processed_data_A.put(data)
             # 当processed_data_A为空时，放入
 
-    # TODO process_data_B 对B和C的处理就不需要取固定数量，直接使用积分变换或者指数平滑等方法即可
-    # TODO Process_data_C
 
     def get_processed_data(self):
         with self.lock:  # 获取锁，如果锁被其他的函数调用则会阻塞，
