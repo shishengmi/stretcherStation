@@ -70,12 +70,24 @@ class DataProcessor:
     # TODO Process_data_C
 
     def get_processed_data(self):
-        # Return the latest processed data if available
-        with self.lock:  # Use the lock here too for safe access
+        with self.lock:  # 获取锁，如果锁被其他的函数调用则会阻塞，
             return list(self.processed_data_A.queue) if not self.processed_data_A.empty() else []
+        # 这个方法保证了保证每次获取到的都只有一个最新的processed_data_A数组
 
-        # TODO 保证每次获取到的都只有一个processed_data_A数组
+    # 这个方法get了web_queue中的所有元素
+    def get_ecg_data_web(self):
+        with self.lock:
+            extracted_data = []
+            while not self.processed_data_ecg_web.empty():
+                extracted_data.append(self.processed_data_ecg_web.get())
+            return extracted_data
 
-    # TODO def get_ecg_data_web(self):
-
-    # TODO def get_ecg_data_monitor(self):
+    # 这个方法提取count个数量的对象
+    def get_ecg_data_monitor(self, count):
+        with self.lock:
+            extracted_data = []
+            for _ in range(count):
+                if self.processed_data_ecg_web.empty():
+                    break
+                extracted_data.append(self.processed_data_ecg_web.get())
+            return extracted_data

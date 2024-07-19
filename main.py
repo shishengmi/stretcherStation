@@ -12,11 +12,10 @@ if __name__ == "__main__":
 
     try:
         while True:
-            processed_data = data_processor.get_processed_data()
-            if processed_data:
-                # 转换np.float64值为标准浮点数，并格式化输出
-                formatted_data = [float(value) for value in processed_data[0]]  # 假设数据是列表的列表
-                print(f"Processed Data A: {formatted_data}")
+            web_ecg_data = data_processor.get_ecg_data_web()
+            monitor_ecg_data = data_processor.get_ecg_data_monitor(40)
+            print("webdata: " + ", ".join(web_ecg_data))
+            print("ecgdata: " + ", ".join(monitor_ecg_data))
             time.sleep(1)  # 刷新率，根据需要调整
     except KeyboardInterrupt:
         data_processor.stop()
