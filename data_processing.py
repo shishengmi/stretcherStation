@@ -70,3 +70,4 @@ class DataProcessor:
                     break
                 extracted_data.append(self.processed_data_ecg_web.get())
             return extracted_data
+
