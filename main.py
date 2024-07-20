@@ -27,8 +27,12 @@ if __name__ == "__main__":
     try:
         while True:
             processed_data = data_processor.get_ecg_data_web()
+            a = data_processor.get_blood_oxygen()
+            b = data_processor.get_body_temperature()
             if processed_data:
-                print(f"Processed Data A: {processed_data}")
+                # print(f"Processed Data A: {processed_data}")
+                print(a)
+                print(b)
                 plot_data(processed_data)  # 调用绘图函数
             time.sleep(3)  # 刷新率，根据需要调整
     except KeyboardInterrupt:

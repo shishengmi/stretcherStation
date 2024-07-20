@@ -24,14 +24,38 @@ class DataProcessor:
     def start(self):
         self.is_running = True
         threading.Thread(target=self.process_ecg_data, daemon=True).start()
+        threading.Thread(target=self.process_body_temperature, daemon=True).start()
+        threading.Thread(target=self.process_blood_oxygen, daemon=True).start()
 
     def stop(self):
         self.is_running = False
 
     def process_body_temperature(self):
+        temperatures = []  # 用于存储体温的列表
+        max_samples = 10000  # 滑动窗口的大小
+        scale_factor = 0.85  # 用于调整温度的缩放因子
+        offset = 0.0  # 用于调整温度的偏移量
+        deviation_threshold = 5.0  # 允许的最大偏差
+        alpha = 0.9  # EMA 平滑系数
+        ema_temp = None  # 初始化EMA温度
+
         while self.is_running:
             try:
-                temp_value = self.parser.data_C.get(timeout=1)  # 从传递的串口对象的消息队列中获取一个温度值
+                raw_temp_value = self.parser.data_C.get(timeout=1) / 10  # 获取原始温度值
+                temp_value = raw_temp_value * scale_factor + offset  # 调整温度
+
+                # 初始化EMA温度或更新
+                if ema_temp is None:
+                    ema_temp = temp_value
+                else:
+                    ema_temp = alpha * temp_value + (1 - alpha) * ema_temp
+
+                # 将EMA温度添加到列表中
+                temperatures.append(ema_temp)
+                if len(temperatures) > max_samples:
+                    temperatures.pop(0)  # 维持窗口大小
+
+                self.bodyTemperature = ema_temp
             except queue.Empty:
                 continue
 
@@ -39,6 +63,7 @@ class DataProcessor:
         while self.is_running:
             try:
                 temp_value = self.parser.data_B.get(timeout=1)  # 从传递的串口对象的消息队列中获取一个血氧值
+                self.bodyTemperature = temp_value
             except queue.Empty:
                 continue
 
@@ -89,8 +114,6 @@ class DataProcessor:
                             self.heart_rate = 60 / (1 / self.frequency * peak_interval_num)  # 计算心率
 
                             self.rr_interval = 1 / self.heart_rate  # 计算RR间隔计算
-                            print(self.heart_rate)
-                            print(self.rr_interval)
                             peak_interval_num = 0  # 波峰间隔点个数清零
 
                     else:  # 未检测到波峰
