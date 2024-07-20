@@ -2,7 +2,7 @@
 
 
 ```shell
-pip install lttb flask pyserial flask_cors
+pip install lttb flask pyserial flask_cors matplotlib
 ```
 
 ```powershell
