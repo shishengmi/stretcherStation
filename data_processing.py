@@ -14,7 +14,7 @@ class DataProcessor:
         self.lock = threading.Lock()
         self.ecg_data_original_list = []
         self.lttb_n_count = 40
-        self.frequency = 500
+        self.frequency = 250
         self.heart_rate = 0
         self.rr_interval = 0
 
@@ -46,48 +46,53 @@ class DataProcessor:
         ecg_point_max = float('-inf')
         ecg_point_min = float('inf')
         ecg_point_max_new = 0
-        ecg_point_min_new = 0
+        ecg_point_min_new = 0xffffffff
         ticks_old = time.time()
         ticks_new = 0
         ecg_points = [3]
         ticks_heart_rate = time.time()
         ticks_heart_rate_new = 0
         peak_interval_num = 0  # 波峰的间隔点个数
+        i = 0
 
         while self.is_running:
             try:
                 ecg_value = self.parser.data_A.get(timeout=1)
                 self.ecg_data_original_list.append(ecg_value)
 
-                ticks_new = time.time()
+                # ------------------------------心率的计算
                 # 刷新最大值与最小值
                 if ecg_value > ecg_point_max_new:
                     ecg_point_max_new = ecg_value
                 if ecg_value < ecg_point_min_new:
                     ecg_point_min_new = ecg_value
 
-                # 每隔两秒更新一次最大值和最小值
-                if ticks_new - ticks_old >= 2:
+                # 每隔三百个数据点
+                if i >= 300:
                     ecg_point_max = ecg_point_max_new
                     ecg_point_min = ecg_point_min_new
-                    print(f'Max Value in last 2 seconds: {ecg_point_max_new}')
-                    print(f'Min Value in last 2 seconds: {ecg_point_min_new}')
-
                     # 重置最大值和最小值
-                    ecg_point_max_new = float('-inf')
-                    ecg_point_min_new = float('inf')
-                    ticks_old = ticks_new
+                    ecg_point_max_new = 0
+                    ecg_point_min_new = 0xffffffff
+                    i = 0
+                else:
+                    i += 1
 
-                # ------------------------------心率的计算
-                elif len(ecg_points) < 3:  # 小于3代表数据初始数据未收集完成
+                if len(ecg_points) < 3:  # 小于3代表数据初始数据未收集完成
                     ecg_points.append(ecg_value)
-                if len(ecg_points) >= 3:  # 大于等于代表可以用于波峰检测
+                elif len(ecg_points) >= 3:  # 大于等于代表可以用于波峰检测
                     ecg_points.pop(0)
                     ecg_points.append(ecg_value)
-                    if ecg_points[0] < ecg_points[1] > ecg_points[2]:  # 检测到波峰处理逻辑
-                        peak_interval_num = 0  # 波峰间隔点个数清零
-                        self.heart_rate = 60 / (1 / self.frequency * peak_interval_num)  # 计算心率
-                        self.rr_interval = 1 / self.heart_rate  # 计算RR间隔计算
+                    if ((ecg_points[0] < ecg_points[1] > ecg_points[2]) &
+                            (ecg_points[1] - ecg_point_min > (ecg_point_max - ecg_point_min) / 2)):  # 检测到波峰处理逻辑
+                        if peak_interval_num != 0:
+                            self.heart_rate = 60 / (1 / self.frequency * peak_interval_num)  # 计算心率
+
+                            self.rr_interval = 1 / self.heart_rate  # 计算RR间隔计算
+                            print(self.heart_rate)
+                            print(self.rr_interval)
+                            peak_interval_num = 0  # 波峰间隔点个数清零
+
                     else:  # 未检测到波峰
                         peak_interval_num += 1
 
@@ -102,7 +107,7 @@ class DataProcessor:
                     for point in ecg_data_reduced_list:
                         self.processed_data_ecg_web.put(point)
                         self.processed_data_ecg_monitor.put(point)
-                    print(f"Processed and stored data A: {ecg_data_reduced_list}")  # 调试信息
+                    # print(f"Processed and stored data A: {ecg_data_reduced_list}")  # 调试信息
                     self.ecg_data_original_list = []
 
             except queue.Empty:
@@ -113,7 +118,7 @@ class DataProcessor:
             extracted_data = []
             while not self.processed_data_ecg_web.empty():
                 extracted_data.append(self.processed_data_ecg_web.get())
-            print(f"Extracted data for web: {extracted_data}")  # 调试信息
+            # print(f"Extracted data for web: {extracted_data}")  # 调试信息
             return extracted_data
 
     def get_ecg_data_monitor(self, count):

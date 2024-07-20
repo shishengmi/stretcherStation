@@ -30,7 +30,7 @@ if __name__ == "__main__":
             if processed_data:
                 print(f"Processed Data A: {processed_data}")
                 plot_data(processed_data)  # 调用绘图函数
-            time.sleep(1)  # 刷新率，根据需要调整
+            time.sleep(3)  # 刷新率，根据需要调整
     except KeyboardInterrupt:
         data_processor.stop()
         serial_parser.stop()
