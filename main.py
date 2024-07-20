@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from seria_receive import SerialData
 from data_processing import DataProcessor
 import time
+from serial_transport import SerialDataTransport
 
 
 def plot_data(data):
@@ -23,6 +24,9 @@ if __name__ == "__main__":
 
     data_processor = DataProcessor(serial_parser)
     data_processor.start()
+
+    serial_translate = SerialDataTransport(data_processor)
+    serial_translate.start(port='COM7')
 
     try:
         while True:

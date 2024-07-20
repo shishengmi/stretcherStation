@@ -16,6 +16,7 @@ data_processor = DataProcessor(serial_parser)
 @app.route('/get_ecg_data', methods=['GET'])
 def get_ecg_data():
     processed_data = data_processor.get_ecg_data_web()
+    # TODO 补全数据
     print(f"Retrieved processed data: {processed_data}")  # 调试信息
     return jsonify(processed_data)
 
