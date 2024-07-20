@@ -3,22 +3,23 @@ import threading
 import numpy as np
 import lttb
 import time
-from seria_receive import SerialData
 
 
 class DataProcessor:
     def __init__(self, parser):
         self.parser = parser
-        self.processed_data_A = queue.Queue()
         self.processed_data_ecg_web = queue.Queue()
         self.processed_data_ecg_monitor = queue.Queue()
         self.is_running = False
-        self.ecg_data_original_list = []
         self.lock = threading.Lock()
+        self.ecg_data_original_list = []
         self.lttb_n_count = 40
         self.frequency = 500
         self.heart_rate = 0
         self.rr_interval = 0
+
+        self.bodyTemperature = 0
+        self.bloodOxygenSaturation = 0
 
     def start(self):
         self.is_running = True
@@ -26,6 +27,20 @@ class DataProcessor:
 
     def stop(self):
         self.is_running = False
+
+    def process_body_temperature(self):
+        while self.is_running:
+            try:
+                temp_value = self.parser.data_C.get(timeout=1)  # 从传递的串口对象的消息队列中获取一个温度值
+            except queue.Empty:
+                continue
+
+    def process_blood_oxygen(self):
+        while self.is_running:
+            try:
+                temp_value = self.parser.data_B.get(timeout=1)  # 从传递的串口对象的消息队列中获取一个血氧值
+            except queue.Empty:
+                continue
 
     def process_ecg_data(self):
         ecg_point_max = float('-inf')
@@ -41,15 +56,15 @@ class DataProcessor:
 
         while self.is_running:
             try:
-                a_value = self.parser.data_A.get(timeout=1)
-                self.ecg_data_original_list.append(a_value)
+                ecg_value = self.parser.data_A.get(timeout=1)
+                self.ecg_data_original_list.append(ecg_value)
 
                 ticks_new = time.time()
                 # 刷新最大值与最小值
-                if a_value > ecg_point_max_new:
-                    ecg_point_max_new = a_value
-                if a_value < ecg_point_min_new:
-                    ecg_point_min_new = a_value
+                if ecg_value > ecg_point_max_new:
+                    ecg_point_max_new = ecg_value
+                if ecg_value < ecg_point_min_new:
+                    ecg_point_min_new = ecg_value
 
                 # 每隔两秒更新一次最大值和最小值
                 if ticks_new - ticks_old >= 2:
@@ -65,10 +80,10 @@ class DataProcessor:
 
                 # ------------------------------心率的计算
                 elif len(ecg_points) < 3:  # 小于3代表数据初始数据未收集完成
-                    ecg_points.append(a_value)
+                    ecg_points.append(ecg_value)
                 if len(ecg_points) >= 3:  # 大于等于代表可以用于波峰检测
                     ecg_points.pop(0)
-                    ecg_points.append(a_value)
+                    ecg_points.append(ecg_value)
                     if ecg_points[0] < ecg_points[1] > ecg_points[2]:  # 检测到波峰处理逻辑
                         peak_interval_num = 0  # 波峰间隔点个数清零
                         self.heart_rate = 60 / (1 / self.frequency * peak_interval_num)  # 计算心率
@@ -109,3 +124,15 @@ class DataProcessor:
                     break
                 extracted_data.append(self.processed_data_ecg_web.get())
             return extracted_data
+
+    def get_heart_rate(self):
+        return self.heart_rate
+
+    def get_rr_interval(self):
+        return self.rr_interval
+
+    def get_body_temperature(self):
+        return self.bodyTemperature
+
+    def get_blood_oxygen(self):
+        return self.bloodOxygenSaturation
