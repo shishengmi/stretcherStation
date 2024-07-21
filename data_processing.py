@@ -10,8 +10,8 @@ import time
 class DataProcessor:
     def __init__(self, parser):
         self.parser = parser
-        self.processed_data_ecg_web = queue.Queue()
-        self.processed_data_ecg_monitor = queue.Queue()
+        self.processed_data_ecg_web = queue.Queue(maxsize=100)
+        self.processed_data_ecg_monitor = queue.Queue(maxsize=100)
         self.is_running = False
         self.lock = threading.Lock()
         self.ecg_data_original_list = []
@@ -65,7 +65,7 @@ class DataProcessor:
         while self.is_running:
             try:
                 temp_value = self.parser.data_B.get(timeout=1)  # 从传递的串口对象的消息队列中获取一个血氧值
-                self.bodyTemperature = temp_value
+                self.bloodOxygenSaturation = temp_value
             except queue.Empty:
                 continue
 
@@ -126,13 +126,16 @@ class DataProcessor:
                 # ------------------------------图像的压缩与队列处理
                 if len(self.ecg_data_original_list) == 500:
                     times = np.linspace(0, 499, num=500)
-                    temp_list = lttb.downsample(np.column_stack((times, self.ecg_data_original_list)),
-                                                self.lttb_n_count)
+                    temp_list = lttb.downsample(np.column_stack((times, self.ecg_data_original_list)), self.lttb_n_count)
                     ecg_data_reduced_list = [float(point[1]) for point in temp_list]
                     for point in ecg_data_reduced_list:
+                        if self.processed_data_ecg_web.full():
+                            self.processed_data_ecg_web.get()  # 丢弃前面的数据
                         self.processed_data_ecg_web.put(point)
+
+                        if self.processed_data_ecg_monitor.full():
+                            self.processed_data_ecg_monitor.get()  # 丢弃前面的数据
                         self.processed_data_ecg_monitor.put(point)
-                    # print(f"Processed and stored data A: {ecg_data_reduced_list}")  # 调试信息
                     self.ecg_data_original_list = []
 
             except queue.Empty:
