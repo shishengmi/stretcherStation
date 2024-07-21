@@ -146,14 +146,23 @@ class DataProcessor:
             # print(f"Extracted data for web: {extracted_data}")  # 调试信息
             return extracted_data
 
+
     def get_ecg_data_monitor(self, count):
-        with self.lock:
-            extracted_data = []
-            for _ in range(count):
-                if self.processed_data_ecg_web.empty():
-                    break
-                extracted_data.append(self.processed_data_ecg_web.get())
-            return extracted_data
+        extracted_data = []
+        while True:
+            with self.lock:
+                try:
+                    # 阻塞直到获取到消息或超时2秒
+                    data = self.processed_data_ecg_monitor.get(timeout=2)
+                    extracted_data.append(data)
+                    # 检查是否已获取到指定数量的数据
+                    if len(extracted_data) >= count:
+                        break
+                except queue.Empty:
+                    # 超时处理，继续尝试获取数据
+                    continue
+        return extracted_data
+
 
     def get_heart_rate(self):
         return self.heart_rate

@@ -1,15 +1,20 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from seria_receive import SerialData
+from seria_receive import SerialReceive
 from data_processing import DataProcessor
 import threading
 import time
+
+class StationData:
+    def __init__(self):
+
+
 
 app = Flask(__name__)
 CORS(app)  # 允许所有域名的跨域请求
 
 # 实例化 SerialData 和 DataProcessor
-serial_parser = SerialData(port='COM4')
+serial_parser = SerialReceive(port='COM4')
 data_processor = DataProcessor(serial_parser)
 
 

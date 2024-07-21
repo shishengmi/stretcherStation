@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
-from seria_receive import SerialData
+from seria_receive import SerialReceive
+from serial_transport import SerialTransport
 from data_processing import DataProcessor
 import time
-from serial_transport import SerialDataTransport
+from serial_transport import SerialTransport
 
 
 def plot_data(data):
@@ -19,14 +20,14 @@ def plot_data(data):
 
 
 if __name__ == "__main__":
-    serial_parser = SerialData(port='COM4')
+    serial_parser = SerialReceive(port='COM4')
     serial_parser.start()
 
     data_processor = DataProcessor(serial_parser)
     data_processor.start()
 
-    serial_translate = SerialDataTransport(data_processor)
-    serial_translate.start(port='COM7')
+    serial_translate = SerialTransport(data_processor)
+    serial_translate.start(port='COM7',baudrate=115200)
 
     try:
         while True:
@@ -35,8 +36,6 @@ if __name__ == "__main__":
             b = data_processor.get_body_temperature()
             if processed_data:
                 # print(f"Processed Data A: {processed_data}")
-                print(a)
-                print(b)
                 plot_data(processed_data)  # 调用绘图函数
             time.sleep(3)  # 刷新率，根据需要调整
     except KeyboardInterrupt:
