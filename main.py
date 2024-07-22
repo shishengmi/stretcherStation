@@ -20,14 +20,14 @@ def plot_data(data):
 
 
 if __name__ == "__main__":
-    serial_parser = SerialReceive(port='COM4')
+    serial_parser = SerialReceive(port='COM11')
     serial_parser.start()
 
     data_processor = DataProcessor(serial_parser)
     data_processor.start()
 
     serial_translate = SerialTransport(data_processor)
-    serial_translate.start(port='COM7',baudrate=115200)
+    serial_translate.start(port='COM7', baudrate=115200)
 
     try:
         while True:

@@ -12,7 +12,7 @@ CORS(app)  # 允许所有域名的跨域请求
 
 # 实例化 SerialData 和 DataProcessor
 
-serial_parser = SerialReceive(port='COM4')
+serial_parser = SerialReceive(port='COM11')
 data_processor = DataProcessor(serial_parser)
 serial_translate = SerialTransport(data_processor)
 
@@ -47,8 +47,8 @@ service_thread = threading.Thread(target=start_services)
 service_thread.start()
 
 # 等待服务启动
-time.sleep(3)
+time.sleep(2)
 
 # 启动Flask应用
 print("Starting Flask app...")
-app.run(debug=True, host='0.0.0.0', port=5000)
+app.run(debug=False, host='0.0.0.0', port=5000)

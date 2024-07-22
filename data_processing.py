@@ -65,6 +65,8 @@ class DataProcessor:
         while self.is_running:
             try:
                 temp_value = self.parser.data_B.get(timeout=1)  # 从传递的串口对象的消息队列中获取一个血氧值
+                if temp_value < 1:
+                    temp_value = 0
                 self.bloodOxygenSaturation = temp_value
             except queue.Empty:
                 continue
