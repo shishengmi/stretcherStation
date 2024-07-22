@@ -116,11 +116,10 @@ class SerialTransport:
         body_temperature = int(self.processor.get_body_temperature() * 10)
         blood_oxygen = int(self.processor.get_blood_oxygen() * 10)
 
-        # 组装数据包
-        data_packet = struct.pack('40IIII',
+        #采用小端序打包数据 无符号整形 172B字节
+        data_packet = struct.pack('<40I3I',
                                   *ecg_data,
                                   heart_rate,
                                   body_temperature,
-                                  blood_oxygen,
-                                  )
+                                  blood_oxygen)
         return data_packet
