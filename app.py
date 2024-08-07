@@ -12,7 +12,7 @@ CORS(app)  # 允许所有域名的跨域请求
 
 # 实例化 SerialData 和 DataProcessor
 
-serial_parser = SerialReceive(port='COM11')
+serial_parser = SerialReceive(port='COM7')
 data_processor = DataProcessor(serial_parser)
 serial_translate = SerialTransport(data_processor)
 
@@ -39,7 +39,7 @@ def get_ecg_data():
 def start_services():
     serial_parser.start()
     data_processor.start()
-    serial_translate.start(port='COM7', baudrate=115200)
+    serial_translate.start(port='COM3', baudrate=115200)
 
 
 # 启动串行和数据处理服务
