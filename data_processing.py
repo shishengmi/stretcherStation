@@ -32,12 +32,8 @@ class DataProcessor:
 
     def process_body_temperature(self):
         temperatures = []  # 用于存储体温的列表
-        max_samples = 10000  # 滑动窗口的大小
-        scale_factor = 0.85  # 用于调整温度的缩放因子
+        scale_factor = 0.8  # 用于调整温度的缩放因子
         offset = 0.0  # 用于调整温度的偏移量
-        deviation_threshold = 5.0  # 允许的最大偏差
-        alpha = 0.9  # EMA 平滑系数
-        ema_temp = None  # 初始化EMA温度
         max_temp = 37.2  # 最大温度限制
         room_temperature = 23.2  # 室温
 
@@ -45,19 +41,30 @@ class DataProcessor:
             try:
                 raw_temp_value = self.parser.data_C.get(timeout=1) / 10  # 获取原始温度值
                 temp_value = raw_temp_value * scale_factor + offset  # 调整温度
-
-                # 初始化EMA温度或更新
-                if ema_temp is None:
-                    ema_temp = temp_value
-                else:
-                    ema_temp = alpha * temp_value + (1 - alpha) * ema_temp
-
-                # 将EMA温度添加到列表中
-                temperatures.append(ema_temp)
-                if len(temperatures) > max_samples:
-                    temperatures.pop(0)  # 维持窗口大小
-
                 self.bodyTemperature = temp_value
+
+                # 将当前温度值添加到列表中
+                temperatures.append(temp_value)
+
+                # 只保留最近的70个温度数据点
+                if len(temperatures) > 70:
+                    temperatures.pop(0)
+
+                # 如果数据点达到70个，计算平均值
+                if len(temperatures) == 70:
+                    # 舍弃最大和最小的十个点
+                    sorted_temps = sorted(temperatures)
+                    trimmed_temps = sorted_temps[10:-10]
+
+                    # 计算剩余数据点的平均值
+                    average_temp = sum(trimmed_temps) / len(trimmed_temps)
+                    if average_temp > max_temp:
+                        self.bodyTemperature = max_temp
+                    else:
+                        self.bodyTemperature = average_temp
+                    temperatures.clear()
+                    print(f"Average Temperature: {self.bodyTemperature:.2f}°C")
+
             except queue.Empty:
                 continue
 
@@ -82,12 +89,14 @@ class DataProcessor:
         ticks_heart_rate = time.time()
         ticks_heart_rate_new = 0
         peak_interval_num = 0  # 波峰的间隔点个数
+        peak_detection_threshold = 0.6
         i = 0
 
         while self.is_running:
             try:
                 ecg_value = self.parser.data_A.get(timeout=1)
                 self.ecg_data_original_list.append(ecg_value)
+                # 获取心电数据并且添加到数组中
 
                 # ------------------------------心率的计算
                 # 刷新最大值与最小值
@@ -112,10 +121,11 @@ class DataProcessor:
                 elif len(ecg_points) >= 3:  # 大于等于代表可以用于波峰检测
                     ecg_points.pop(0)
                     ecg_points.append(ecg_value)
-                    if ((ecg_points[0] < ecg_points[1] > ecg_points[2]) &
-                            (ecg_points[1] - ecg_point_min > (ecg_point_max - ecg_point_min) / 2)):  # 检测到波峰处理逻辑
+                    if (
+                            (ecg_points[0] < ecg_points[1] > ecg_points[2]) &  # 检测是否为波峰
+                            (ecg_points[1] - ecg_point_min > (ecg_point_max - ecg_point_min) * peak_detection_threshold)):  # 检测是否超过阈值
                         if peak_interval_num != 0:
-                            self.heart_rate = 60 / (1 / self.frequency * peak_interval_num)  # 计算心率
+                            self.heart_rate = 60 / (1 / 125 * peak_interval_num)  # 计算心率
 
                             self.rr_interval = 1 / self.heart_rate  # 计算RR间隔计算
                             peak_interval_num = 0  # 波峰间隔点个数清零
@@ -128,7 +138,8 @@ class DataProcessor:
                 # ------------------------------图像的压缩与队列处理
                 if len(self.ecg_data_original_list) == 500:
                     times = np.linspace(0, 499, num=500)
-                    temp_list = lttb.downsample(np.column_stack((times, self.ecg_data_original_list)), self.lttb_n_count)
+                    temp_list = lttb.downsample(np.column_stack((times, self.ecg_data_original_list)),
+                                                self.lttb_n_count)
                     ecg_data_reduced_list = [float(point[1]) for point in temp_list]
                     for point in ecg_data_reduced_list:
                         if self.processed_data_ecg_web.full():
@@ -151,7 +162,6 @@ class DataProcessor:
             # print(f"Extracted data for web: {extracted_data}")  # 调试信息
             return extracted_data
 
-
     def get_ecg_data_monitor(self, count):
         extracted_data = []
         while True:
@@ -167,7 +177,6 @@ class DataProcessor:
                     # 超时处理，继续尝试获取数据
                     continue
         return extracted_data
-
 
     def get_heart_rate(self):
         return self.heart_rate

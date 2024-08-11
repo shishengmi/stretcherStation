@@ -55,3 +55,5 @@ time.sleep(2)
 # 启动Flask应用
 print("Starting Flask app...")
 app.run(debug=False, host='0.0.0.0', port=5000)
+
+# TODO,添加一个按键监听，实现重定向数据处理对象
