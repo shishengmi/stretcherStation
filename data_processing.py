@@ -38,6 +38,8 @@ class DataProcessor:
         deviation_threshold = 5.0  # 允许的最大偏差
         alpha = 0.9  # EMA 平滑系数
         ema_temp = None  # 初始化EMA温度
+        max_temp = 37.2  # 最大温度限制
+        room_temperature = 23.2  # 室温
 
         while self.is_running:
             try:
@@ -55,7 +57,7 @@ class DataProcessor:
                 if len(temperatures) > max_samples:
                     temperatures.pop(0)  # 维持窗口大小
 
-                self.bodyTemperature = ema_temp
+                self.bodyTemperature = temp_value
             except queue.Empty:
                 continue
 
