@@ -99,7 +99,9 @@ class SerialTransport:
 
         # 打印十六进制表示的数据包
         print(hex_data_packet)
-
+        # 打印十进制表示的数据包
+        decimal_data_packet = [int.from_bytes(data_packet[i:i+4], 'little') for i in range(0, len(data_packet), 4)]
+        # print(f"Decimal Data Packet: {decimal_data_packet}")
         # 发送数据包
         self.serial_port.write(data_packet)
 

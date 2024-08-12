@@ -22,6 +22,7 @@ def get_ecg_data():
     # 这里是异步处理
     # 从数据处理对象中获取各种数据的值，然后打包成json格式
     ecg_data = data_processor.get_ecg_data_web()
+    print(ecg_data)
     heart_rate = int(data_processor.get_heart_rate() * 10)
     body_temperature = int(data_processor.get_body_temperature() * 10)
     blood_oxygen = int(data_processor.get_blood_oxygen() * 10)
@@ -34,7 +35,7 @@ def get_ecg_data():
         'blood_oxygen': blood_oxygen
     }
 
-    print(f"Retrieved processed data: {response_data}")  # 调试信息
+    # print(f"Retrieved processed data: {response_data}")  # 调试信息
     return jsonify(response_data)
 
 
@@ -42,7 +43,7 @@ def start_services():
     # 开启三个线程
     serial_parser.start()
     data_processor.start()
-    serial_translate.start(port='COM12', baudrate=115200)
+    serial_translate.start(port='COM11', baudrate=115200)
 
 
 # 启动串行和数据处理服务，这里相当于用一个线程套用了三个线程？？

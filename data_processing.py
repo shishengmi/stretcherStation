@@ -8,8 +8,8 @@ import time
 class DataProcessor:
     def __init__(self, parser):
         self.parser = parser
-        self.processed_data_ecg_web = queue.Queue(maxsize=100)
-        self.processed_data_ecg_monitor = queue.Queue(maxsize=100)
+        self.processed_data_ecg_web = queue.Queue(maxsize=400)
+        self.processed_data_ecg_monitor = queue.Queue(maxsize=400)
         self.is_running = False
         self.lock = threading.Lock()
         self.ecg_data_original_list = []
@@ -63,7 +63,6 @@ class DataProcessor:
                     else:
                         self.bodyTemperature = average_temp
                     temperatures.clear()
-                    print(f"Average Temperature: {self.bodyTemperature:.2f}°C")
 
             except queue.Empty:
                 continue
@@ -136,8 +135,8 @@ class DataProcessor:
                 # ------------------------------HRV心率变异度是否需要再开一个线程
 
                 # ------------------------------图像的压缩与队列处理
-                if len(self.ecg_data_original_list) == 500:
-                    times = np.linspace(0, 499, num=500)
+                if len(self.ecg_data_original_list) == 250:
+                    times = np.linspace(0, 249, num=250)
                     temp_list = lttb.downsample(np.column_stack((times, self.ecg_data_original_list)),
                                                 self.lttb_n_count)
                     ecg_data_reduced_list = [float(point[1]) for point in temp_list]
