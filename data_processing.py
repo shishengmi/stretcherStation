@@ -89,6 +89,7 @@ class DataProcessor:
         ticks_heart_rate_new = 0
         peak_interval_num = 0  # 波峰的间隔点个数
         peak_detection_threshold = 0.6
+
         i = 0
 
         while self.is_running:
@@ -125,6 +126,9 @@ class DataProcessor:
                             (ecg_points[1] - ecg_point_min > (ecg_point_max - ecg_point_min) * peak_detection_threshold)):  # 检测是否超过阈值
                         if peak_interval_num != 0:
                             self.heart_rate = 60 / (1 / 125 * peak_interval_num)  # 计算心率
+
+                            if self.heart_rate > 100:
+                                self.heart_rate = 100
 
                             self.rr_interval = 1 / self.heart_rate  # 计算RR间隔计算
                             peak_interval_num = 0  # 波峰间隔点个数清零
